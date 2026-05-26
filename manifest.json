@@ -2,7 +2,7 @@
   "name": "别忘 - 语音任务助手",
   "short_name": "别忘",
   "description": "智能语音任务提醒助手，支持语音和文字输入，自动解析时间",
-  "start_url": "/DF_V1.1.html",
+  "start_url": "/Dont-Forget/DF_V1.1.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#667eea",
