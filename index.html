@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="别忘 - 智能语音任务提醒助手，支持语音和文字输入，自动解析时间">
+    <meta name="keywords" content="任务提醒,语音助手,待办事项,日历提醒">
+    <meta name="author" content="别忘团队">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="别忘">
+    <meta name="apple-touch-fullscreen" content="yes">
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23111' width='32' height='32' rx='8'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='18'>😴</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23111' width='180' height='180' rx='40'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='100'>😴</text></svg>">
+    
+    <meta name="theme-color" content="#111111">
+    <meta name="msapplication-TileColor" content="#111111">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <title>别忘 · 语音任务助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding-bottom: 80px;
+        }
+        .container { max-width: 540px; margin: 0 auto; padding: 24px 16px; }
+        header { text-align: center; padding: 20px 0 16px; }
+        h1 { font-size: 38px; font-weight: 800; color: #22c55e; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .subtitle { font-size: 16px; opacity: 0.75; color: #9ca3af; }
+
+        .page { display: none; animation: fadeSlideUp 0.3s ease-out; }
+        .page.active-page { display: block; }
+
+        .input-methods { display: flex; gap: 12px; margin-bottom: 24px; }
+        .method-tab { flex: 1; background: #1f1f1f; border: 2px solid #333; padding: 14px; border-radius: 16px; color: #9ca3af; font-weight: 600; cursor: pointer; font-size: 16px; transition: all 0.2s; }
+        .method-tab.active { background: #166534; border-color: #22c55e; color: #22c55e; }
+        .method-panel { display: none; }
+        .method-panel.active-panel { display: block; }
+
+        .voice-section, .text-section { background: #141414; border: 1px solid #262626; border-radius: 24px; padding: 28px 20px; margin-bottom: 24px; text-align: center; }
+        .mic-button { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(145deg, #16a34a, #22c55e); border: 4px solid #166534; color: white; font-size: 56px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3); transition: all 0.2s; }
+        .mic-button:active { transform: scale(0.92); }
+        .mic-button.listening { animation: sonicWave 1.2s infinite; }
+        .voice-status { font-size: 18px; color: #d1d5db; margin-bottom: 8px; }
+        .voice-hint { font-size: 15px; color: #6b7280; line-height: 1.5; }
+        .task-textarea { width: 100%; background: #1a1a1a; border: 2px solid #333; border-radius: 18px; padding: 16px; color: #f3f4f6; resize: vertical; margin-bottom: 16px; font-family: inherit; font-size: 17px; }
+        .parse-text-btn { background: linear-gradient(95deg, #15803d, #22c55e); border: none; padding: 16px; width: 100%; border-radius: 60px; color: white; font-weight: 700; cursor: pointer; font-size: 17px; }
+
+        .parse-result { background: #111827; border: 1px solid #1f2937; border-radius: 28px; padding: 22px; margin-top: 20px; display: none; }
+        .parse-result.show { display: block; }
+        .result-title { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #22c55e; margin-bottom: 16px; font-weight: 700; }
+        .edit-time-btn { background: #14532d; border: 1px solid #166534; padding: 8px 16px; border-radius: 40px; color: #4ade80; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .task-item { display: flex; gap: 16px; margin-bottom: 20px; }
+        .task-icon { width: 56px; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #166534, #22c55e); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+        .task-content { flex: 1; }
+        .task-text-edit { width: 100%; font-size: 18px; border: 2px solid #374151; border-radius: 16px; padding: 12px; background: #111827; color: white; }
+        .confirm-btn { width: 100%; padding: 16px; margin-top: 12px; border: none; border-radius: 60px; background: linear-gradient(95deg, #15803d, #22c55e); color: white; font-weight: 700; cursor: pointer; font-size: 17px; }
+
+        .time-picker-panel { background: #111827; border: 1px solid #1f2937; border-radius: 28px; padding: 22px; margin-top: 20px; display: none; }
+        .time-picker-panel.show { display: block; }
+        .datetime-wheel { width: 100%; padding: 16px; font-size: 18px; border-radius: 18px; border: 2px solid #374151; background: #111827; color: white; text-align: center; margin-bottom: 20px; }
+
+        .task-card { background: #111827; border: 1px solid #1f2937; color: #f3f4f6; border-radius: 22px; padding: 18px; margin-bottom: 14px; }
+        .task-card.completed { opacity: 0.65; }
+        .task-card-text { font-size: 18px; font-weight: 700; cursor: pointer; margin-bottom: 10px; color: #f9fafb; }
+        .task-meta { font-size: 14px; margin-top: 10px; display: flex; gap: 14px; color: #9ca3af; flex-wrap: wrap; }
+        .task-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .action-icon { background: transparent; border: 1px solid #374151; font-size: 14px; padding: 8px 14px; border-radius: 40px; font-weight: 700; cursor: pointer; color: #9ca3af; }
+        .action-icon.complete { background: #14532d; border-color: #22c55e; color: #4ade80; }
+        .action-icon.undo-complete { background: #78350f; border-color: #f59e0b; color: #fbbf24; }
+        .action-icon.delete { background: #450a0a; border-color: #dc2626; color: #f87171; }
+        .action-icon.edit { background: #1e3a8a; border-color: #3b82f6; color: #60a5fa; }
+        .empty-state { text-align: center; padding: 56px 24px; opacity: 0.7; font-size: 17px; color: #6b7280; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding: 0 4px; }
+        .section-title { font-size: 19px; font-weight: 800; color: #e5e7eb; }
+        .task-count { font-size: 15px; color: #22c55e; background: #14532d; padding: 6px 14px; border-radius: 24px; font-weight: 700; }
+        .transcript-box { margin-top: 18px; padding: 14px 18px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; display: none; }
+        .transcript-box.show { display: block; }
+        #transcriptText { color: #e5e7eb; font-size: 17px; line-height: 1.6; }
+        .task-time { margin-top: 10px; color: #9ca3af; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        .chart-bar-container { margin-top: 24px; }
+
+        .stats-card { background: #111827; border: 1px solid #1f2937; border-radius: 28px; padding: 24px; margin-bottom: 24px; }
+        .stats-title { font-size: 20px; font-weight: 800; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; color: #e5e7eb; }
+        .dimension-btns { display: flex; gap: 10px; }
+        .dimension-btn { background: #1f2937; border: 2px solid #374151; padding: 8px 18px; border-radius: 40px; color: #9ca3af; cursor: pointer; font-size: 15px; font-weight: 700; }
+        .dimension-btn.active { background: #14532d; border-color: #22c55e; color: #22c55e; }
+        .stats-grid { display: flex; gap: 16px; justify-content: space-around; margin: 24px 0; }
+        .stats-item { text-align: center; flex: 1; background: #1f2937; border: 1px solid #374151; border-radius: 22px; padding: 16px; }
+        .stats-number { font-size: 38px; font-weight: 900; color: #22c55e; }
+        .stats-label { font-size: 15px; color: #9ca3af; margin-top: 4px; }
+        .bar-item { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .bar-label { width: 80px; font-size: 15px; color: #9ca3af; }
+        .bar-bg { flex: 1; height: 12px; background: #374151; border-radius: 10px; overflow: hidden; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #166534, #22c55e); width: 0%; }
+        .bar-value { font-size: 14px; color: #9ca3af; margin-left: 10px; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #111; border-top: 1px solid #262626; display: flex; justify-content: center; gap: 4px; padding: 10px 8px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+        .nav-item { flex: 1; max-width: 160px; display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 16px; cursor: pointer; color: #6b7280; transition: all 0.2s; }
+        .nav-item.active { background: #14532d; color: #22c55e; }
+        .nav-icon { font-size: 26px; margin-bottom: 4px; }
+        .nav-label { font-size: 12px; font-weight: 700; }
+
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px); background: #111827; border: 1px solid #374151; padding: 14px 24px; border-radius: 60px; color: #f3f4f6; font-size: 16px; font-weight: 600; transition: 0.3s; z-index: 1000; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes sonicWave { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); } 70% { box-shadow: 0 0 0 36px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header><h1>😴 别忘</h1><p class="subtitle">语音/文字 · 任务助手</p></header>
+
+    <div id="homePage" class="page active-page">
+        <div class="input-methods">
+            <button class="method-tab active" data-method="voice">🎤 语音输入</button>
+            <button class="method-tab" data-method="text">✍️ 文字输入</button>
+        </div>
+        <div id="voicePanel" class="method-panel active-panel">
+            <div class="voice-section">
+                <button class="mic-button" id="micBtn">🎤</button>
+                <div class="voice-status" id="voiceStatus">轻点麦克风，说出任务</div>
+                <div class="voice-hint">例如："五分钟后抽烟" 或 "明天下午三点开会"</div>
+                <div class="transcript-box" id="transcriptBox"><div id="transcriptText"></div></div>
+            </div>
+        </div>
+        <div id="textPanel" class="method-panel">
+            <div class="text-section">
+                <textarea class="task-textarea" id="textTaskInput" rows="3" placeholder="例如：五分钟后抽烟&#10;或：下周三下午4点30分提交周报"></textarea>
+                <button class="parse-text-btn" id="parseTextBtn">✨ 解析并添加任务</button>
+            </div>
+        </div>
+
+        <div class="parse-result" id="parseResult">
+            <div class="result-title"><span>✨ 智能识别</span><button class="edit-time-btn" id="openTimePickerBtn">🕒 修改时间</button></div>
+            <div class="task-item"><div class="task-icon">📋</div><div class="task-content"><input type="text" id="editableTaskText" class="task-text-edit" value="任务内容"><div class="task-time"><span>⏰</span><span id="parsedTimePreview"></span></div></div></div>
+            <button class="confirm-btn" id="confirmAddBtn">✓ 确认添加任务</button>
+        </div>
+        <div class="time-picker-panel" id="timePickerPanel">
+            <div class="result-title">📅 滚动选择日期时间</div>
+            <input type="datetime-local" id="datetimeWheel" class="datetime-wheel">
+            <button class="confirm-btn" id="applyManualTimeBtn" style="background:linear-gradient(95deg, #15803d, #22c55e);">✔ 更新时间</button>
+            <button class="confirm-btn" id="cancelTimePickerBtn" style="background:#374151;">取消</button>
+        </div>
+
+        <div class="tasks-section">
+            <div class="section-header"><div class="section-title">📌 我的任务</div><div class="task-count" id="taskCount">0</div></div>
+            <div id="tasksList"><div class="empty-state">✨ 暂无任务</div></div>
+        </div>
+    </div>
+
+    <div id="trashPage" class="page">
+        <div class="section-header"><div class="section-title">🗑 回收站</div><div class="task-count" id="trashCount">0</div></div>
+        <div id="trashList"><div class="empty-state">暂无删除的任务</div></div>
+    </div>
+
+    <div id="statsPage" class="page">
+        <div class="stats-card">
+            <div class="stats-title">📊 任务统计
+                <div class="dimension-btns">
+                    <button class="dimension-btn active" data-dim="day">日</button>
+                    <button class="dimension-btn" data-dim="week">周</button>
+                    <button class="dimension-btn" data-dim="month">月</button>
+                    <button class="dimension-btn" data-dim="year">年</button>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stats-item"><div class="stats-number" id="completedCount">0</div><div class="stats-label">按时完成</div></div>
+                <div class="stats-item"><div class="stats-number" id="unfinishedCount">0</div><div class="stats-label">未完成</div></div>
+            </div>
+            <div id="statsChart"></div>
+        </div>
+    </div>
+
+
+</div>
+
+<nav class="bottom-nav">
+    <div class="nav-item active" data-page="home">
+        <span class="nav-icon">📌</span>
+        <span class="nav-label">任务</span>
+    </div>
+    <div class="nav-item" data-page="trash">
+        <span class="nav-icon">🗑</span>
+        <span class="nav-label">回收站</span>
+    </div>
+    <div class="nav-item" data-page="stats">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">统计</span>
+    </div>
+</nav>
+
+<div class="toast" id="toastMsg"></div>
+
+<script>
+    let tasks = [], deletedTasks = [], currentNav = 'home', parsedTemp = null;
+    let isListening = false, recognition = null;
+
+    function loadData(){
+        const t = localStorage.getItem('tasks_biewang'); if(t) tasks = JSON.parse(t);
+        const d = localStorage.getItem('deletedTasks_biewang'); if(d) deletedTasks = JSON.parse(d);
+        tasks.forEach(t=>{ if(t.completedAt===undefined) t.completedAt=null; });
+        deletedTasks.forEach(t=>{ if(t.completedAt===undefined) t.completedAt=null; });
+    }
+    function saveTasks(){ localStorage.setItem('tasks_biewang', JSON.stringify(tasks)); }
+    function saveDeleted(){ localStorage.setItem('deletedTasks_biewang', JSON.stringify(deletedTasks)); }
+    function showToast(msg){ const t=document.getElementById('toastMsg'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+    function parseRelativeTime(fullText, base=new Date()){
+        let m = fullText.match(/(\\d+|一|二|三|四|五|六|七|八|九|十)\\s*分钟后/);
+        if(m){ let n=m[1]; const cn={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10}; let min = parseInt(n); if(isNaN(min) && cn[n]) min=cn[n]; if(!isNaN(min)) return new Date(base.getTime()+min*60000); }
+        let h = fullText.match(/(\\d+|一|二|三|四|五|六|七|八|九|十)\\s*小时后/);
+        if(h){ let n=h[1]; const cn={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10}; let hrs = parseInt(n); if(isNaN(hrs) && cn[n]) hrs=cn[n]; if(!isNaN(hrs)) return new Date(base.getTime()+hrs*3600000); }
+        return null;
+    }
+    function smartDateParse(txt, base=new Date()){
+        let rel = parseRelativeTime(txt,base); if(rel) return rel;
+        let now = new Date(base); now.setHours(0,0,0,0);
+        let target = new Date(now), hour=9, minute=0, hasTime=false;
+        let tm = txt.match(/(上午|下午|晚上|中午|凌晨)?(\\d{1,2})(?::|点|时)(\\d{1,2})?(?:分|半)?/i);
+        if(tm){
+            let period=tm[1]||'', rh=parseInt(tm[2]), rm=tm[3]?parseInt(tm[3]):0;
+            if(txt.includes('半')&&!tm[3]) rm=30;
+            if(period==='下午'||period==='晚上'){ if(rh<12) rh+=12; }
+            else if(period==='中午'){ if(rh<12) rh=12; }
+            else if(period==='凌晨'&&rh===12) rh=0;
+            else if(period==='上午'&&rh===12) rh=0;
+            hour=rh; minute=rm; hasTime=true;
+        } else { let d=new Date(); d.setHours(d.getHours()+1,0,0,0); hour=d.getHours(); minute=0; hasTime=false; }
+        let shift=0, specific=null;
+        if(/(明天|明日)/i.test(txt)) shift=1;
+        else if(/(后天)/i.test(txt)) shift=2;
+        else if(/(今天|今日)/i.test(txt)) shift=0;
+        let wm = txt.match(/(?:下个?|这个?|本周)?[周星期]([一二三四五六日])/);
+        if(wm){ let map={'日':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6}; let tw=map[wm[1]]; if(tw!==undefined){ let cw=now.getDay(), delta=tw-cw; if(txt.includes('下')&&delta<=0) delta+=7; else if(!txt.includes('下')&&delta<=0&&!txt.includes('这个')) delta+=7; if(delta===0&&!txt.includes('下')&&!txt.includes('这个')) delta=0; shift=delta; } }
+        let md = txt.match(/(\\d{1,2})月(\\d{1,2})日/);
+        if(md){ let m=parseInt(md[1])-1, d=parseInt(md[2]); specific=new Date(now.getFullYear(),m,d); if(specific<now) specific.setFullYear(specific.getFullYear()+1); shift=null; }
+        if(specific) target=new Date(specific);
+        else target.setDate(now.getDate()+shift);
+        target.setHours(hour,minute,0,0);
+        if(!hasTime && target<=new Date() && shift===0) target.setDate(target.getDate()+1);
+        return target;
+    }
+    function extractTitle(txt){ let s=txt.replace(/(明天|后天|今天|下个?周|周[一二三四五六日]|\\d+分钟后|\\d+小时后)/g,'').replace(/(上午|下午|晚上|中午|凌晨|点|分|半)/g,'').replace(/提醒我|记得|帮我|叫/g,'').replace(/[，,。？!]/g,'').trim(); if(!s) s='待办'; return s; }
+    function parseFullTask(txt){ if(!txt) return null; return { task:extractTitle(txt), date:smartDateParse(txt) }; }
+    function formatDateFriendly(d){ let now=new Date(); let td=new Date(now.getFullYear(),now.getMonth(),now.getDate()); let tar=new Date(d.getFullYear(),d.getMonth(),d.getDate()); let diff=Math.round((tar-td)/86400000); let day=diff===0?'今天':diff===1?'明天':diff===2?'后天':`${d.getMonth()+1}/${d.getDate()}`; return `${day} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; }
+
+    function renderTasks(){ let cont=document.getElementById('tasksList'); if(!tasks.length){ cont.innerHTML='<div class="empty-state">✨ 暂无任务</div>'; document.getElementById('taskCount').innerText='0'; return; } let sorted=[...tasks].sort((a,b)=>new Date(a.date)-new Date(b.date)); document.getElementById('taskCount').innerText=sorted.length; cont.innerHTML=sorted.map(t=>{ let due=new Date(t.date); let isOverdue=due<new Date()&&!t.completed; let completedDate=t.completedAt?new Date(t.completedAt):null; return `<div class="task-card ${t.completed?'completed':''}><div class="task-card-text" data-id="${t.id}">${escapeHtml(t.text)}</div><div class="task-meta"><span>⏰ ${formatDateFriendly(due)} ${isOverdue?'(过期)':''}</span>${t.completed&&completedDate?`<span>✅ 完成于 ${completedDate.toLocaleString()}</span>`:''}</div><div class="task-actions">${!t.completed?`<button class="action-icon complete" data-action="complete" data-id="${t.id}">✔️ 完成</button>`:`<button class="action-icon undo-complete" data-action="undoComplete" data-id="${t.id}">🔄 未完成</button>`}<button class="action-icon edit" data-action="edit" data-id="${t.id}">✏️ 编辑</button><button class="action-icon delete" data-action="delete" data-id="${t.id}">🗑 删除</button></div></div>`; }).join(''); attachEvents(); }
+    function renderTrash(){ let cont=document.getElementById('trashList'); if(!deletedTasks.length){ cont.innerHTML='<div class="empty-state">回收站为空</div>'; document.getElementById('trashCount').innerText='0'; return; } document.getElementById('trashCount').innerText=deletedTasks.length; cont.innerHTML=deletedTasks.map(t=>`<div class="task-card"><div class="task-card-text">${escapeHtml(t.text)}</div><div class="task-meta"><span>⏰ ${formatDateFriendly(new Date(t.date))}</span></div><div class="task-actions"><button class="action-icon edit" data-action="restore" data-id="${t.id}">↩️ 恢复</button><button class="action-icon delete" data-action="permDelete" data-id="${t.id}">💀 永久删除</button></div></div>`).join(''); attachTrashEvents(); }
+    function attachEvents(){ document.querySelectorAll('[data-action="complete"]').forEach(b=>b.addEventListener('click',e=>{ let id=parseInt(b.dataset.id); completeTask(id); })); document.querySelectorAll('[data-action="undoComplete"]').forEach(b=>b.addEventListener('click',e=>{ let id=parseInt(b.dataset.id); undoComplete(id); })); document.querySelectorAll('[data-action="edit"]').forEach(b=>b.addEventListener('click',e=>{ let id=parseInt(b.dataset.id); editTask(id); })); document.querySelectorAll('[data-action="delete"]').forEach(b=>b.addEventListener('click',e=>{ let id=parseInt(b.dataset.id); deleteToTrash(id); })); document.querySelectorAll('.task-card-text[data-id]').forEach(el=>el.addEventListener('click',e=>{ let id=parseInt(el.dataset.id); editTask(id); })); }
+    function attachTrashEvents(){ document.querySelectorAll('[data-action="restore"]').forEach(b=>b.addEventListener('click',e=>{ let id=parseInt(b.dataset.id); restoreTask(id); })); document.querySelectorAll('[data-action="permDelete"]').forEach(b=>b.addEventListener('click',e=>{ let id=parseInt(b.dataset.id); permanentDelete(id); })); }
+    function completeTask(id){ let t=tasks.find(t=>t.id===id); if(t&&!t.completed){ t.completed=true; t.completedAt=new Date().toISOString(); t.notified=true; saveTasks(); renderTasks(); showToast('✅ 已完成'); } }
+    function undoComplete(id){ let t=tasks.find(t=>t.id===id); if(t&&t.completed){ t.completed=false; t.completedAt=null; t.notified=false; saveTasks(); renderTasks(); showToast('🔄 已改为未完成'); } }
+    function deleteToTrash(id){ let idx=tasks.findIndex(t=>t.id===id); if(idx!==-1){ deletedTasks.push(tasks[idx]); tasks.splice(idx,1); saveTasks(); saveDeleted(); renderTasks(); renderTrash(); showToast('已移至回收站'); } }
+    function restoreTask(id){ let idx=deletedTasks.findIndex(t=>t.id===id); if(idx!==-1){ tasks.push(deletedTasks[idx]); deletedTasks.splice(idx,1); saveTasks(); saveDeleted(); renderTasks(); renderTrash(); showToast('已恢复'); } }
+    function permanentDelete(id){ if(confirm('永久删除？')){ deletedTasks=deletedTasks.filter(t=>t.id!==id); saveDeleted(); renderTrash(); showToast('已永久删除'); } }
+    function editTask(id){ let task=tasks.find(t=>t.id===id); if(!task) return; let newText=prompt('修改任务内容',task.text); if(newText&&newText.trim()){ task.text=newText.trim(); saveTasks(); renderTasks(); showToast('已修改'); } if(confirm('是否修改提醒时间？')){ let nt=prompt('新时间(例:明天15:30)',formatDateFriendly(new Date(task.date))); if(nt){ let nd=new Date(nt); if(isNaN(nd.getTime())) nd=smartDateParse(nt); if(!isNaN(nd.getTime())){ task.date=nd.toISOString(); saveTasks(); renderTasks(); showToast('时间已更新'); } else showToast('无效时间'); } } }
+    function addTask(text,date){ if(!text||!date) return false; let newTask={ id:Date.now(), text:text.trim(), date:date.toISOString(), completed:false, completedAt:null, notified:false }; tasks.push(newTask); saveTasks(); renderTasks(); showToast(`✅ 已添加: ${newTask.text}`); return true; }
+
+    let currentDimension='day';
+    function computeStats(){ let now=new Date(); let start,end; if(currentDimension==='day'){ start=new Date(now.getFullYear(),now.getMonth(),now.getDate()); end=new Date(start.getTime()+86400000); } else if(currentDimension==='week'){ let day=now.getDay(); let monday=new Date(now); monday.setDate(now.getDate()-(day===0?6:day-1)); start=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate()); end=new Date(start.getTime()+7*86400000); } else if(currentDimension==='month'){ start=new Date(now.getFullYear(),now.getMonth(),1); end=new Date(now.getFullYear(),now.getMonth()+1,1); } else { start=new Date(now.getFullYear(),0,1); end=new Date(now.getFullYear()+1,0,1); } let completed=0, unfinished=0; tasks.forEach(t=>{ let due=new Date(t.date); if(due>=start&&due<end){ if(t.completed) completed++; else unfinished++; } }); document.getElementById('completedCount').innerText=completed; document.getElementById('unfinishedCount').innerText=unfinished; let groups={}; tasks.forEach(t=>{ let due=new Date(t.date); if(due>=start&&due<end){ let key; if(currentDimension==='day') key=due.toLocaleDateString(); else if(currentDimension==='week'){ let weekNum=Math.ceil((due-start)/86400000/7); key=`第${weekNum+1}周`; } else if(currentDimension==='month') key=`${due.getMonth()+1}月`; else key=due.getFullYear().toString(); if(!groups[key]) groups[key]={complete:0,incomplete:0}; if(t.completed) groups[key].complete++; else groups[key].incomplete++; } }); let html='<div class="chart-bar-container">'; for(let [label,data] of Object.entries(groups)){ let total=data.complete+data.incomplete; let pct=total?(data.complete/total*100):0; html+=`<div class="bar-item"><div class="bar-label">${label}</div><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;"></div></div><div class="bar-value">${data.complete}/${total}</div></div>`; } if(Object.keys(groups).length===0) html+='<div style="text-align:center;padding:24px;color:#6b7280;">暂无数据</div>'; html+='</div>'; document.getElementById('statsChart').innerHTML=html; }
+    function setDimension(dim){ currentDimension=dim; computeStats(); }
+    document.querySelectorAll('.dimension-btn').forEach(btn=>btn.addEventListener('click',()=>{ document.querySelectorAll('.dimension-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); setDimension(btn.dataset.dim); }));
+
+    function showPage(page){
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active-page'));
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        document.getElementById(page+'Page').classList.add('active-page');
+        document.querySelector(`[data-page="${page}"]`).classList.add('active');
+        currentNav=page;
+        if(page==='trash') renderTrash();
+        if(page==='stats') computeStats();
+    }
+    document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>showPage(n.dataset.page)));
+
+    function initSpeech(){ let SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SpeechRec){ showToast('浏览器不支持语音'); return false; } recognition=new SpeechRec(); recognition.continuous=false; recognition.interimResults=true; recognition.lang='zh-CN'; recognition.onstart=()=>{ isListening=true; micBtn.classList.add('listening'); voiceStatus.innerText='🎙️ 聆听中...'; document.getElementById('transcriptBox').classList.remove('show'); parseResultDiv.classList.remove('show'); timePickerPanel.classList.remove('show'); }; recognition.onresult=(e)=>{ let final='',interim=''; for(let i=e.resultIndex;i<e.results.length;i++){ let t=e.results[i][0].transcript; if(e.results[i].isFinal) final+=t; else interim+=t; } if(interim){ transcriptText.innerText=interim; transcriptBox.classList.add('show'); } if(final){ transcriptText.innerText=final; transcriptBox.classList.add('show'); let parsed=parseFullTask(final); if(parsed&&parsed.date){ parsedTemp=parsed; updatePreviewUI(parsedTemp); parseResultDiv.classList.add('show'); } else showToast('未识别到有效时间'); recognition.stop(); } }; recognition.onerror=()=>{ showToast('语音出错'); stopListening(); }; recognition.onend=stopListening; return true; }
+    function stopListening(){ isListening=false; micBtn.classList.remove('listening'); voiceStatus.innerText='轻点麦克风，说出任务'; if(recognition) recognition.abort(); }
+    function toggleMic(){ if(!recognition&&!initSpeech()) return; if(isListening) recognition.stop(); else recognition.start(); }
+    function updatePreviewUI(parsed){ if(!parsed||!parsed.date) return; editableTaskText.value=parsed.task; parsedTimePreview.innerText=formatDateFriendly(parsed.date); let d=parsed.date; datetimeWheel.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+    function showTimePicker(){ if(parsedTemp&&parsedTemp.date){ let d=parsedTemp.date; datetimeWheel.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; } else{ let def=new Date(Date.now()+3600000); datetimeWheel.value=`${def.getFullYear()}-${String(def.getMonth()+1).padStart(2,'0')}-${String(def.getDate()).padStart(2,'0')}T${String(def.getHours()).padStart(2,'0')}:${String(def.getMinutes()).padStart(2,'0')}`; } timePickerPanel.classList.add('show'); }
+    function hideTimePicker(){ timePickerPanel.classList.remove('show'); }
+    function applyManualTime(){ if(!datetimeWheel.value){ showToast('请选择时间'); return; } let nd=new Date(datetimeWheel.value); if(isNaN(nd.getTime())){ showToast('无效时间'); return; } if(parsedTemp){ parsedTemp.date=nd; updatePreviewUI(parsedTemp); hideTimePicker(); showToast('时间已更新'); } else{ parsedTemp={ task:editableTaskText.value.trim()||'新任务', date:nd }; updatePreviewUI(parsedTemp); parseResultDiv.classList.add('show'); hideTimePicker(); } }
+    function confirmAdd(){ let finalTask=editableTaskText.value.trim(); let finalDate=parsedTemp?.date; if(!finalDate) finalDate=smartDateParse('今天+1小时'); if(!finalTask) finalTask='快速任务'; if(addTask(finalTask,finalDate)){ parseResultDiv.classList.remove('show'); document.getElementById('transcriptBox').classList.remove('show'); parsedTemp=null; } }
+    function parseTextInput(){ let raw=textTaskInput.value.trim(); if(!raw){ showToast('请输入任务'); return; } let parsed=parseFullTask(raw); if(parsed&&parsed.date){ parsedTemp=parsed; updatePreviewUI(parsedTemp); parseResultDiv.classList.add('show'); textTaskInput.value=''; } else showToast('未识别到有效时间'); }
+    function switchMethod(method){ if(method==='voice'){ document.getElementById('voicePanel').classList.add('active-panel'); document.getElementById('textPanel').classList.remove('active-panel'); document.querySelector('[data-method="voice"]').classList.add('active'); document.querySelector('[data-method="text"]').classList.remove('active'); } else{ document.getElementById('textPanel').classList.add('active-panel'); document.getElementById('voicePanel').classList.remove('active-panel'); document.querySelector('[data-method="text"]').classList.add('active'); document.querySelector('[data-method="voice"]').classList.remove('active'); } parseResultDiv.classList.remove('show'); timePickerPanel.classList.remove('show'); }
+    document.querySelectorAll('.method-tab').forEach(tab=>tab.addEventListener('click',()=>switchMethod(tab.dataset.method)));
+    const micBtn=document.getElementById('micBtn'), voiceStatus=document.getElementById('voiceStatus'), transcriptBox=document.getElementById('transcriptBox'), transcriptText=document.getElementById('transcriptText');
+    const parseResultDiv=document.getElementById('parseResult'), editableTaskText=document.getElementById('editableTaskText'), parsedTimePreview=document.getElementById('parsedTimePreview');
+    const confirmAddBtn=document.getElementById('confirmAddBtn'), openTimePickerBtn=document.getElementById('openTimePickerBtn'), timePickerPanel=document.getElementById('timePickerPanel');
+    const datetimeWheel=document.getElementById('datetimeWheel'), applyManualTimeBtn=document.getElementById('applyManualTimeBtn'), cancelTimePickerBtn=document.getElementById('cancelTimePickerBtn');
+    const parseTextBtn=document.getElementById('parseTextBtn'), textTaskInput=document.getElementById('textTaskInput');
+    micBtn.addEventListener('click',toggleMic); confirmAddBtn.addEventListener('click',confirmAdd); openTimePickerBtn.addEventListener('click',showTimePicker); applyManualTimeBtn.addEventListener('click',applyManualTime); cancelTimePickerBtn.addEventListener('click',hideTimePicker); parseTextBtn.addEventListener('click',parseTextInput);
+    setInterval(()=>{ let now=new Date(); tasks.forEach(t=>{ if(t.completed||t.notified) return; let due=new Date(t.date); let diff=due-now; if(diff>0&&diff<=60000){ t.notified=true; saveTasks(); if(Notification.permission==='granted') new Notification('😴 别忘提醒',{body:t.text}); showToast(`🔔 别忘: ${t.text}`); renderTasks(); } }); },30000);
+    if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+    function escapeHtml(s){ return s.replace(/[&<>]/g,function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    loadData(); renderTasks(); initSpeech(); parsedTemp={ task:'示例', date:new Date(Date.now()+3600000) }; updatePreviewUI(parsedTemp); parseResultDiv.classList.remove('show');
+
+    if('serviceWorker' in navigator){
+        window.addEventListener('load',()=>{
+            navigator.serviceWorker.register('sw.js').then(registration=>{
+                console.log('SW registered:', registration.scope);
+            }).catch(err=>{
+                console.log('SW registration failed:', err);
+            });
+        });
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt',(e)=>{
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+        window.addEventListener('appinstalled',()=>{
+            deferredPrompt = null;
+            showToast('✨ 已成功安装到主屏幕！');
+        });
+    }
+</script>
+</body>
+</html>

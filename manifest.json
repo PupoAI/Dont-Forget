@@ -2,21 +2,21 @@
   "name": "别忘 - 语音任务助手",
   "short_name": "别忘",
   "description": "智能语音任务提醒助手，支持语音和文字输入，自动解析时间",
-  "start_url": "/Dont-Forget/DF_V1.1.html",
+  "start_url": "/Dont-Forget/index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#667eea",
+  "background_color": "#0a0a0a",
+  "theme_color": "#111111",
   "orientation": "portrait",
   "scope": "/",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%230f172a' width='512' height='512' rx='128'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='280'>💡</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%230a0a0a' width='512' height='512' rx='128'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='280'>😴</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230f172a' width='192' height='192' rx='48'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='100'>💡</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192' rx='48'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='100'>😴</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
